@@ -1,9 +1,11 @@
 import os.path
+import numpy as np
+import pandas
 import pickle
 import typing
 from http import client
 
-import numpy  # type: ignore
+# type: ignore
 
 from d3m_metadata import container, hyperparams, metadata as metadata_module, params, utils
 from primitive_interfaces import base, transformer
@@ -12,7 +14,7 @@ __author__ = 'Distil'
 __version__ = '1.0.0'
 
 
-DOCKER_KEY = 'simon'
+DOCKER_KEY = 'simon-docker'
 
 # It is useful to define these names, so that you can reuse it both
 # for class type arguments and method signatures.
@@ -20,15 +22,14 @@ DOCKER_KEY = 'simon'
 # which is in fact more restrictive than what the primitive can really handle.
 # One could probably just use "typing.Container" in this case, if accepting
 # a wide range of input types.
-Inputs = typing.Union[container.ndarray, container.List[float], container.List[container.List[float]]]
-Outputs = container.List[float]
+Inputs = container.List[container.pandas.DataFrame]
+Outputs = container.List[container.List[str]]
 
 
 class Hyperparams(hyperparams.Hyperparams):
     """
     No hyper-parameters for this primitive.
     """
-
     pass
 
 
@@ -36,24 +37,19 @@ class simon_docker(base.SingletonOutputMixin[Inputs, Outputs, None, Hyperparams]
     # It is important to provide a docstring because this docstring is used as a description of
     # a primitive. Some callers might analyze it to determine the nature and purpose of a primitive.
 
-    """
-    A primitive which sums all the values on input into one number.
-    """
-
     # This should contain only metadata which cannot be automatically determined from the code.
     metadata = metadata_module.PrimitiveMetadata({
         # Simply an UUID generated once and fixed forever. Generated using "uuid.uuid4()".
-        'id': '9c00d42d-382d-4177-a0e7-082da88a29c8',
+        'id': '4f81a9d1-2cbf-367a-b707-1538adf15729',
         'version': __version__,
-        'name': "Sum Values",
+        'name': "simon docker",
         # Keywords do not have a controlled vocabulary. Authors can put here whatever they find suitable.
-        'keywords': ['test primitive'],
+        'keywords': ['Data Type Predictor'],
         'source': {
             'name': __author__,
             'uris': [
-                # Unstructured URIs. Link to file and link to repo in this case.
-                'https://gitlab.com/datadrivendiscovery/tests-data/blob/master/primitives/test_primitives/sum.py',
-                'https://gitlab.com/datadrivendiscovery/tests-data.git',
+                # Unstructured URIs.
+                'https://github.com/NewKnowledge/simon-docker-client',
             ],
         },
         # A list of dependencies in order. These can be Python packages, system packages, or Docker images.
@@ -62,35 +58,35 @@ class simon_docker(base.SingletonOutputMixin[Inputs, Outputs, None, Hyperparams]
         # a dependency which is not on PyPi.
         'installation': [{
             'type': metadata_module.PrimitiveInstallationType.PIP,
-            'package_uri': 'git+https://gitlab.com/datadrivendiscovery/tests-data.git@{git_commit}#egg=test_primitives&subdirectory=primitives'.format(
+            'package_uri': 'git+https://github.com/NewKnowledge/simon-docker-client.git@{git_commit}#egg=SimonDockerClient&subdirectory='.format(
                 git_commit=utils.current_git_commit(os.path.dirname(__file__)),
             ),
         }, {
             'type': metadata_module.PrimitiveInstallationType.DOCKER,
             # A key under which information about a running container will be provided to the primitive.
             'key': DOCKER_KEY,
-            'image_name': 'registry.gitlab.com/datadrivendiscovery/tests-data/summing',
+            'image_name': 'registry.datadrivendiscovery.org/j18_ta1eval/distil/simon-docker',
             # Instead of a label, an exact hash of the image is required. This assures reproducibility.
             # You can see digests using "docker images --digests".
-            'image_digest': 'sha256:07db5fef262c1172de5c1db5334944b2f58a679e4bb9ea6232234d71239deb64',
+            'image_digest': 'sha256:3e689a5c0dbf3f2f6a48b4306a1943155ed7a626f142cb10e377655286d1bb61',
         }],
         # URIs at which one can obtain code for the primitive, if available.
         'location_uris': [
-            'https://gitlab.com/datadrivendiscovery/tests-data/raw/{git_commit}/primitives/test_primitives/sum.py'.format(
+            'https://github.com/NewKnowledge/simon-docker-client/{git_commit}/SimonDockerClient/client.py'.format(
                 git_commit=utils.current_git_commit(os.path.dirname(__file__)),
             ),
         ],
         # The same path the primitive is registered with entry points in setup.py.
-        'python_path': 'd3m.primitives.test.SumPrimitive',
+        'python_path': 'd3m.primitives.distil.simon_docker',
         # Choose these from a controlled vocabulary in the schema. If anything is missing which would
         # best describe the primitive, make a merge request.
         'algorithm_types': [
-            metadata_module.PrimitiveAlgorithmType.COMPUTER_ALGEBRA,
+            metadata_module.PrimitiveAlgorithmType.CONVOLUTIONAL_NEURAL_NETWORK,
         ],
-        'primitive_family': metadata_module.PrimitiveFamily.OPERATOR,
+        'primitive_family': metadata_module.PrimitiveFamily.DATA_CLEANING,
         # A metafeature about preconditions required for this primitive to operate well.
         'preconditions': [
-            # Instead of strings you can also use available Python enumerations.
+            # Instead of strings you can also use available Python enumerations. (?) !!!!!!!!!!!!!
             metadata_module.PrimitivePrecondition.NO_MISSING_VALUES,
             metadata_module.PrimitivePrecondition.NO_CATEGORICAL_VALUES,
         ]
@@ -102,19 +98,14 @@ class simon_docker(base.SingletonOutputMixin[Inputs, Outputs, None, Hyperparams]
         if DOCKER_KEY not in self.docker_containers:
             raise ValueError("Docker key '{docker_key}' missing among provided Docker containers.".format(docker_key=DOCKER_KEY))
 
-    def _convert_value(self, value: typing.Any) -> typing.Union[numpy.ndarray, typing.List, typing.Any]:
-        # Server does not know about container types, just standard numpy arrays and lists.
-        if isinstance(value, container.ndarray):
-            return value.view(numpy.ndarray)
-        elif isinstance(value, container.List):
-            return [self._convert_value(v) for v in value]
-        else:
-            return value
-
     def produce(self, *, inputs: Inputs, timeout: float = None, iterations: int = None) -> base.CallResult[Outputs]:
         # In the future, we should store here data in Arrow format into
-        # Plasma store and just pass an ObjectId of data over HTTP.
+        # Plasma store and just pass an ObjectId of data over HTTP.             (?) !!!!!!!!!!!!!
+
+
         value = self._convert_value(inputs)
+
+
         data = pickle.dumps(value)
 
         # TODO: Retry if connection fails.
@@ -151,7 +142,7 @@ class simon_docker(base.SingletonOutputMixin[Inputs, Outputs, None, Hyperparams]
         # Wrap it into default "CallResult" object: we are not doing any iterations.
         return base.CallResult(outputs)
 
-    # Because numpy arrays do not contain shapes and dtype as part of their structural types,
+    # Because numpy arrays do not contain shapes and dtype as part of their structural types,          (?) !!!!!!!!!!!!!
     # we have to manually check those in metadata. In this case, just dtype which is stored as
     # "structural_type" on values themselves (and not the container or dimensions).
     @classmethod
