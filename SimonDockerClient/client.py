@@ -59,7 +59,7 @@ class simon_docker(base.SingletonOutputMixin[Inputs, Outputs, None, Hyperparams]
         'installation': [{
             'type': metadata_module.PrimitiveInstallationType.PIP,
             'package_uri': 'git+https://github.com/NewKnowledge/simon-docker-client.git@{git_commit}'.format(
-                git_commit=utils.current_git_commit(os.path.dirname(__file__)),
+                git_commit='4dd7130decd733b76d5e74205e7c6877c78a9d8c',
             ),
         }, {
             'type': metadata_module.PrimitiveInstallationType.DOCKER,
