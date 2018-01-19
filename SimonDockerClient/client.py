@@ -72,9 +72,7 @@ class simon_docker(base.SingletonOutputMixin[Inputs, Outputs, None, Hyperparams]
         }],
         # URIs at which one can obtain code for the primitive, if available.
         'location_uris': [
-            'https://github.com/NewKnowledge/simon-docker-client/{git_commit}/SimonDockerClient/client.py'.format(
-                git_commit=utils.current_git_commit(os.path.dirname(__file__)),
-            ),
+            'https://github.com/NewKnowledge/simon-docker-client/SimonDockerClient/client.py',
         ],
         # The same path the primitive is registered with entry points in setup.py.
         'python_path': 'd3m.primitives.distil.simon_docker',
